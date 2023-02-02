@@ -1,21 +1,35 @@
 import psycopg2
 
+class DataBaseBean:
 
-class Dbean:
-    def __init__(self) -> None:
-
-        
+    def __init__(self):
+        try:
+            self.postgreSQL_pool = psycopg2.pool.SimpleConnectionPool(1, 5, user="postgre", password="postgre", host="127.0.0.1",port="5432",database="postgres")
+        except (Exception, psycopg2.DatabaseError) as error:
+            print("Ошибка при подключении к бд", error)
         pass
 
-try:
-    postgreSQL_pool = psycopg2.pool.SimpleConnectionPool(1, 5, user="postgre",
-                                                         password="postgre",
-                                                         host="127.0.0.1",
-                                                         port="5432",
-                                                         database="postgres")
-    if (postgreSQL_pool):
-        print("Connection pool created successfully")
+    def query(self, query, params):
+        try:
+            connection = self.postgreSQL_pool.getconn()
+            cursor = connection.cursor()
+            cursor.execute(query, params)
+            connection.commit()
+            return cursor.rowcount
 
+        except (Exception, psycopg2.DatabaseError) as error:    
+            print("Ошибка при исполнении запроса", error)
+        finally:
+            if connection:
+                cursor.close()
+                self.postgreSQL_pool.putconn(connection)
+     
+    def __del__(self):
+        print("Закрытие соединений...")
+        self.postgreSQL_pool.closeall
+
+
+'''       
     # Use getconn() to Get Connection from connection pool
     ps_connection = postgreSQL_pool.getconn()
 
@@ -44,3 +58,4 @@ finally:
     if postgreSQL_pool:
         postgreSQL_pool.closeall
     print("PostgreSQL connection pool is closed")
+'''
